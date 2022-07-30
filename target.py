@@ -5,7 +5,6 @@ import time
 import requests
 
 from flask import Flask, request
-from environs import Env
 
 
 class Service():
