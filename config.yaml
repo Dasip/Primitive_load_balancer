@@ -1,0 +1,19 @@
+config:
+  ip: 127.0.0.1
+  port: 5000
+  buffer_size: 8192
+  max_connections: 20
+  logfile: proxy
+server_list:
+  server_ip:
+    - 127.0.0.1
+    - 127.0.0.1
+    - 127.0.0.1
+    - 127.0.0.1
+    - 127.0.0.1
+  server_port:
+    - 8001
+    - 8002
+    - 8003
+    - 8004
+    - 8005

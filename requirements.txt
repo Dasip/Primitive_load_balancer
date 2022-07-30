@@ -1,0 +1,4 @@
+Flask~=2.0.2
+requests~=2.27.1
+PyYAML~=6.0
+environs~=8.0.0
