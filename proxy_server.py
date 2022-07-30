@@ -2,7 +2,7 @@ import socket, sys, yaml, requests, logging
 import threading
 import time
 
-from manual_tests import start_tester
+from manual_tests import ManualTester
 from target import Service
 
 
@@ -19,6 +19,8 @@ class LoadBalancer():
         self.servers = []
         self.working_servers = []
         self.disconnected_servers = []
+
+        self.server_apps = []
 
         self.alive = False
 
@@ -54,6 +56,7 @@ class LoadBalancer():
             new_service = Service(i[0], i[1])
             t = threading.Thread(target=new_service.startup)
             t.start()
+            self.server_apps.append((new_service, t))
             self.logger.warning(f"Server {i[0]}:{i[1]} is on-line!")
             time.sleep(0.1)
         self.logger.warning("All servers set on-line")
@@ -85,15 +88,14 @@ class LoadBalancer():
         self.startup_all_servers()
         self.alive = True
         while self.alive:
+            print("ALIVE")
             conn, addr = self.socket.accept()
             self.logger.info(f"Accepted a connection: {addr[0]}:{addr[1]}")
             if addr not in self.servers:
                 self.logger.info(f"Balancing a request from {addr} onto working servers")
                 data = conn.recv(self.buffer_size)
                 least_loaded_server = self.find_least_loaded_server()
-                #print(least_loaded_server)
                 self.connect_the_two(data, conn, addr, least_loaded_server)
-        sys.exit(2)
 
     def connect_the_two(self, data, conn, addr, server):
         new_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -105,18 +107,37 @@ class LoadBalancer():
         conn.close()
         new_socket.close()
 
+    def stop_everything(self):
+        for i in self.server_apps:
+            i[0].stop()
+        self.alive = False
+
+        return list(map(lambda x: x[1], self.server_apps))
+
 
 if __name__ == "__main__":
 
     #main()
     f = LoadBalancer()
+    tester = ManualTester()
     t1 = threading.Thread(target=f.startup)
-    t2 = threading.Thread(target=start_tester)
+    t2 = threading.Thread(target=tester.start)
     t1.start()
     t2.start()
-    time.sleep(5)
+    time.sleep(100)
     f.disconnect_server(f.working_servers[2])
-    time.sleep(5)
+    time.sleep(100)
     f.startup_server(f.disconnected_servers[0])
-    time.sleep(5)
-    f.alive = False
+    time.sleep(100)
+    tester.shutdown()
+    t2.join()
+    threads = f.stop_everything()
+    for i in threads:
+        i.join()
+    print(t1, t2, threads)
+
+    # A very crude stop, but a stop nevertheless, taking into account it's 0:40 so I have NO time for a proper
+    # code termination
+    f.socket.close()
+    t1.join()
+    sys.exit(1)
